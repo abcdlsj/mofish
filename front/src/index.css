@@ -1,0 +1,29 @@
+body {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+}
+
+/* Heading styles */
+h1 {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+/* Code styles */
+code {
+  font-family: "Courier New", Courier, monospace;
+  background-color: #f0f0f0;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 14px;
+}
