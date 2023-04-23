@@ -49,6 +49,8 @@ pub struct HackerNews {
 
 pub struct Hupu {
     url: String,
+    size: usize,
+    base_url: String,
 }
 
 pub struct DouBan {
@@ -126,9 +128,20 @@ fn crawl_to_json() {
 
     let hupu = Hupu {
         url: "https://bbs.hupu.com/all-gambia".to_string(),
+        size: 10,
+        base_url: "https://bbs.hupu.com".to_string(),
     };
 
     let hupu_items = hupu.crawl(&hupu.url);
+
+    let hupu_items = hupu_items
+        .into_iter()
+        .take(hupu.size)
+        .map(|item| Item {
+            url: format!("{}{}", hupu.base_url, item.url),
+            ..item
+        })
+        .collect::<Vec<Item>>();
 
     map.insert("hupu".to_string(), hupu_items);
 
@@ -143,19 +156,21 @@ fn crawl_to_json() {
     // json with indent
     let json = serde_json::to_string_pretty(&map).unwrap();
 
-    std::fs::write("data.json", json).unwrap();
+    std::fs::write("mofish.json", json).unwrap();
 }
 
 fn main() {
-    let now = std::time::SystemTime::now();
     let ten_minutes = std::time::Duration::from_secs(60 * 10);
-    if let Ok(metadata) = std::fs::metadata("data.json") {
-        if let Ok(modified) = metadata.modified() {
-            if now.duration_since(modified).unwrap() > ten_minutes {
-                crawl_to_json();
-            }
-        }
-    }
 
-    let _data = std::fs::read_to_string("data.json").unwrap();
+    if !std::path::Path::new("mofish.json").exists()
+        || std::fs::metadata("mofish.json")
+            .unwrap()
+            .modified()
+            .unwrap()
+            .elapsed()
+            .unwrap()
+            > ten_minutes
+    {
+        crawl_to_json();
+    }
 }
