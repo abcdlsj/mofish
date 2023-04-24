@@ -45,6 +45,7 @@ pub trait Crawler {
 
 pub struct HackerNews {
     url: String,
+    size: usize,
 }
 
 pub struct Hupu {
@@ -55,6 +56,7 @@ pub struct Hupu {
 
 pub struct DouBan {
     url: String,
+    size: usize,
 }
 
 impl Crawler for DouBan {
@@ -120,11 +122,12 @@ fn crawl_to_json() {
 
     let hn = HackerNews {
         url: "https://news.ycombinator.com/".to_string(),
+        size: 10,
     };
 
     let hn_items = hn.crawl(&hn.url);
 
-    map.insert("hackernews".to_string(), hn_items);
+    map.insert("hackernews".to_string(), hn_items.into_iter().take(hn.size).collect());
 
     let hupu = Hupu {
         url: "https://bbs.hupu.com/all-gambia".to_string(),
@@ -147,11 +150,12 @@ fn crawl_to_json() {
 
     let douban = DouBan {
         url: "https://www.douban.com/group/explore".to_string(),
+        size: 10,
     };
 
     let douban_items = douban.crawl(&douban.url);
 
-    map.insert("douban".to_string(), douban_items);
+    map.insert("douban".to_string(), douban_items.into_iter().take(douban.size).collect());
 
     // json with indent
     let json = serde_json::to_string_pretty(&map).unwrap();
