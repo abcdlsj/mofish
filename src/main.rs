@@ -1,7 +1,4 @@
 use clap::Parser;
-extern crate pretty_env_logger;
-#[macro_use]
-extern crate log;
 
 mod crawl;
 mod server;
@@ -21,8 +18,6 @@ struct Args {
 
 #[tokio::main]
 async fn main() {
-    pretty_env_logger::init();
-
     let args = Args::parse();
 
     if args.server {
