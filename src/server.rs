@@ -3,9 +3,9 @@ use std::{net::SocketAddr, vec};
 use url;
 
 use crate::{
-    crawl::crawler,
+    crawl::crawler_start,
     readability::fetch_read,
-    storage::{get_latest_top_links, insert_tops, Top},
+    storage::{get_latest, insert_tops, Top},
 };
 
 pub async fn start(port: u16) {
@@ -32,30 +32,24 @@ pub async fn start(port: u16) {
         .unwrap();
 }
 
-const CRAWL_CACHE: &'static str = include_str!("/Users/abcdlsj/Workspace/abcdlsj/mofish/mofish.json");
-
 async fn crawl_handle() -> &'static str {
-    if CRAWL_CACHE.len() > 0 {
-        return CRAWL_CACHE;
-    }
-
     let sites = vec![
         "hackernews".to_string(),
         "hupu".to_string(),
         "douban".to_string(),
     ];
 
-    match get_latest_top_links(sites, None) {
-        Ok(m) => {
+    match get_latest(sites, None.unwrap_or(3600)) {
+        Ok(mut m) => {
             match m.len() {
                 0 => {
-                    info!("start crawls");
-                    let _crawls = crawler().unwrap();
+                    info!("latest links is empty, start crawls");
+                    let crawl_result = crawler_start().unwrap();
 
-                    info!("crawls: {:?}", _crawls);
+                    info!("crawls resule: {:?}", crawl_result);
                     let mut tops: Vec<Top> = vec![];
 
-                    for (k, v) in _crawls {
+                    for (k, v) in crawl_result {
                         for (i, item) in v.iter().enumerate() {
                             let top = Top {
                                 url: item.url.clone(),
@@ -64,10 +58,15 @@ async fn crawl_handle() -> &'static str {
                                 index: (i + 1) as i64,
 
                                 id: 0,
-                                created_at: "".to_string(),
+                                created_at: chrono::Local::now().to_string(),
                             };
 
-                            tops.push(top);
+                            tops.push(top.clone());
+                            if m.contains_key(k.as_str()) {
+                                m.get_mut(k.as_str()).unwrap().push(top.clone());
+                            } else {
+                                m.insert(k.clone(), vec![top.clone()]);
+                            }
                         }
                     }
 

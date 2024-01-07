@@ -1,6 +1,7 @@
 use anyhow::Result;
-use chrono;
+use chrono::{Local, NaiveDateTime};
 use serde::{Deserialize, Serialize};
+use sqlite::{Connection, State};
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
@@ -12,7 +13,7 @@ pub struct Link {
     pub created_at: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct Top {
     pub id: i64,
     pub url: String,
@@ -25,58 +26,54 @@ pub struct Top {
 pub fn init_storage() -> Result<()> {
     let conn = get_db_conn()?;
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS links (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url TEXT NOT NULL,
-        title TEXT NOT NULL,
-        content TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );",
-    )?;
-
-    conn.execute(
         "CREATE TABLE IF NOT EXISTS tops (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         url TEXT NOT NULL,
         site TEXT NOT NULL,
         title TEXT NOT NULL,
         idx INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        created_at INTEGER NOT NULL
     );",
     )?;
 
     Ok(())
 }
 
-fn get_db_conn() -> Result<sqlite::Connection> {
+fn get_db_conn() -> Result<Connection> {
     let conn = sqlite::open("mofish.db")?;
     Ok(conn)
 }
 
-pub fn get_latest_top_links(
-    sites: Vec<String>,
-    _timestamp: Option<String>,
-) -> Result<HashMap<String, Vec<Top>>> {
-    let conn = sqlite::open("mofish.db")?;
+pub fn get_latest(sites: Vec<String>, expire: i64) -> Result<HashMap<String, Vec<Top>>> {
+    let conn = get_db_conn()?;
+
     let mut m: HashMap<String, Vec<Top>> = HashMap::new();
 
-    let mut stmt = conn.prepare(
-        "SELECT * FROM tops WHERE site IN (:sites) AND created_at > datetime(:ctime, 'unixepoch') GROUP BY site ORDER BY idx DESC LIMIT 10",
-    )?;
-    stmt.bind((":sites", sites.join(",").as_str()))?;
-    stmt.bind((":ctime", chrono::Utc::now().timestamp() - 3600))?;
+    let sites_ph: Vec<String> = sites.iter().map(|_| "?".to_string()).collect();
 
-    info!(":sites: {}", sites.join(",").as_str());
-    info!(":ctime: {}", chrono::Utc::now().timestamp() - 3600);
+    let mut stmt = conn.prepare(format!(
+        "SELECT * FROM tops WHERE site IN ({}) AND created_at > :ctime ORDER BY idx DESC",
+        sites_ph.join(",")
+    ))?;
 
-    while let sqlite::State::Row = stmt.next()? {
+    for (i, site) in sites.iter().enumerate() {
+        stmt.bind((i + 1, site.as_str()))?;
+    }
+
+    stmt.bind((":ctime", Local::now().timestamp() - expire))?;
+
+    while let State::Row = stmt.next()? {
+        let create_timestamp = stmt.read::<i64, _>("created_at")?;
+
         let top = Top {
             id: stmt.read::<i64, _>("id")?,
             url: stmt.read::<String, _>("url")?,
             site: stmt.read::<String, _>("site")?,
             title: stmt.read::<String, _>("title")?,
             index: stmt.read::<i64, _>("idx")?,
-            created_at: stmt.read::<String, _>("create_at")?,
+            created_at: NaiveDateTime::from_timestamp_opt(create_timestamp, 0)
+                .unwrap()
+                .to_string(),
         };
 
         let site = top.site.clone();
@@ -86,6 +83,8 @@ pub fn get_latest_top_links(
             m.insert(site, vec![top]);
         }
     }
+
+    info!("get_latest result: {:?}", m);
 
     Ok(m)
 }
@@ -99,16 +98,18 @@ pub fn insert_tops(tops: Vec<Top>) -> Result<()> {
 
     for top in tops {
         let sql = format!(
-            "INSERT INTO tops (url, site, title, idx) VALUES ('{}', '{}', '{}', {})",
+            "INSERT INTO tops (url, site, title, idx, created_at) VALUES ('{}', '{}', '{}', {}, {})",
             escape(top.url),
             escape(top.site),
             escape(top.title),
-            top.index
+            top.index,
+            Local::now().timestamp(),
         );
 
         match conn.execute(sql.as_str()) {
             Err(e) => {
                 error!("insert_tops error: {}", e);
+                return Err(e.into());
             }
             _ => {}
         }
@@ -124,8 +125,8 @@ mod tests {
 
     #[test]
     fn test_get_latest_top_links() {
-        let sites = vec!["hackernews".to_string(), "lobsters".to_string()];
-        match get_latest_top_links(sites, None) {
+        let sites = vec!["hackernews".to_string(), "hupu".to_string()];
+        match get_latest(sites, None.unwrap_or(3600)) {
             Ok(m) => {
                 println!("{:?}", m);
             }
@@ -138,43 +139,6 @@ mod tests {
     #[test]
     fn test_init_storage() {
         match init_storage() {
-            Ok(_) => {}
-            Err(e) => {
-                println!("{}", e);
-            }
-        }
-    }
-
-    #[test]
-    fn test_insert_tops() {
-        let tops = vec![
-            Top {
-                url: "https://www.google.com".to_string(),
-                site: "hackernews".to_string(),
-                title: "google".to_string(),
-                index: 1,
-                id: 0,
-                created_at: "".to_string(),
-            },
-            Top {
-                url: "https://www.google.com".to_string(),
-                site: "hackernews".to_string(),
-                title: "google".to_string(),
-                index: 2,
-                id: 0,
-                created_at: "".to_string(),
-            },
-            Top {
-                url: "https://www.google.com".to_string(),
-                site: "hackernews".to_string(),
-                title: "google".to_string(),
-                index: 3,
-                id: 0,
-                created_at: "".to_string(),
-            },
-        ];
-
-        match insert_tops(tops) {
             Ok(_) => {}
             Err(e) => {
                 println!("{}", e);

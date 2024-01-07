@@ -19,7 +19,7 @@ const HomePage = () => {
 
   return (
     <div className="App">
-      <h1>MoFish App</h1>
+      <h1>Mo Fish</h1>
       {data && (
         <div className="api-data">
           {[
@@ -29,7 +29,7 @@ const HomePage = () => {
           ].map((section) => (
             <div>
               <h2>{section.name}</h2>
-              {section.data.map((item, index) => (
+                {section.data && section.data.map((item, index) => (
                 <div key={`${section.name.toLowerCase()}-${index}`}>
                   <Link to={`/detail/${encodeURIComponent(item.url)}`}>
                     {item.title}

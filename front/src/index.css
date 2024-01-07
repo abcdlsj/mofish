@@ -1,29 +1,26 @@
+@import url("https://cdn.jsdelivr.net/npm/water.css@2/out/water.css");
+
 body {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  line-height: 1.5;
-}
-
-/* Heading styles */
-h1 {
-  font-size: 32px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-h2 {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 15px;
-}
-
-/* Code styles */
-code {
-  font-family: "Courier New", Courier, monospace;
-  background-color: #f0f0f0;
-  padding: 2px 5px;
-  border-radius: 4px;
-  font-size: 14px;
+  /* Water.css styles */
+  --water-color: #f0f0f0;
+  --water-background-color: #fff;
+  --water-text-color: #000;
+  --water-link-color: #0366d6;
+  --water-link-hover-color: #1a0dab;
+  --water-link-visited-color: #6f42c1;
+  --water-border-color: #ddd;
+  --water-code-background-color: #f0f0f0;
+  --water-code-text-color: #000;
+  --water-code-border-color: #ddd;
+  --water-code-font-family: "Courier New", Courier, monospace;
+  --water-heading-font-family: Arial, sans-serif;
+  --water-heading-line-height: 1.5;
+  --water-heading-margin-bottom: 20px;
+  --water-heading1-font-size: 32px;
+  --water-heading1-font-weight: bold;
+  --water-heading2-font-size: 24px;
+  --water-heading2-font-weight: bold;
+  --water-code-font-size: 14px;
+  --water-code-padding: 2px 5px;
+  --water-code-border-radius: 4px;
 }

@@ -4,6 +4,7 @@ use scraper;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::HashMap;
 
+pub mod config;
 pub mod douban;
 pub mod hn;
 pub mod hupu;
@@ -49,7 +50,7 @@ pub trait Crawler {
     }
 }
 
-pub fn crawler() -> Result<HashMap<String, Vec<Item>>> {
+pub fn crawler_start() -> Result<HashMap<String, Vec<Item>>> {
     let mut map = HashMap::new();
 
     let hn = hn::HackerNews {
@@ -99,7 +100,7 @@ pub fn crawler() -> Result<HashMap<String, Vec<Item>>> {
 }
 
 pub fn output_to(path: String) {
-    let map = crawler().unwrap();
+    let map = crawler_start().unwrap();
     let json = serde_json::to_string_pretty(&map).unwrap();
 
     std::fs::write(path, json).unwrap();
